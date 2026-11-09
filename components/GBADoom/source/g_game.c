@@ -949,6 +949,10 @@ void G_DoLoadGame (void)
     savefile = fopen(savename, "r");
     printf("savefile: %p\n", savefile);
     _g->gameaction = ga_nothing; 
+    if (!savefile) {
+        printf("No save in this slot\n");
+        return;
+    }
 
     fseek(savefile, 0L, SEEK_END);
     size_t sz = ftell(savefile);
@@ -1066,6 +1070,12 @@ void G_DoSaveGame (boolean menu)
     //save_p = _g->savebuffer = Z_Malloc(20000, PU_STATIC, 0); 
 	savefile = fopen(name, "w");
     printf("name: %s, file_fd: %p\n", name, savefile);
+    if (!savefile) {
+        printf("Cannot write save file\n");
+        _g->gameaction = ga_nothing;
+        savedescription[0] = 0;
+        return;
+    }
 
     //memcpy (save_p, description, SAVESTRINGSIZE); 
     wr(description, SAVESTRINGSIZE);

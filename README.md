@@ -19,9 +19,10 @@ Everything else (keyboard, sound, music, other controls, embedded WAD, 6 MB part
 | Menus | Same scaling as gameplay | Smoothed (anti-aliased) scaling while a menu is open, so text looks even |
 | Settings | Not saved (GBA cartridge SRAM only) | Saved in flash (NVS): brightness, volumes, always run, messages |
 | Brightness | Starts at 0 | Starts at **4** (of 0–5) until you change it |
+| Save / load game | Needs an SD card that is never mounted, so it does nothing (load can crash) | Saved in a 1 MB FAT partition in internal flash, no SD card needed |
 | Build | Manual `idf.py build` | GitHub Action builds the Cardputer ADV firmware and uploads it as an artifact |
 
-Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, brightness), `components/GBADoom/source/i_system_esps3.c` and `include/gba_functions.h` (settings in NVS), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
+Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, brightness), `components/GBADoom/source/i_system_esps3.c` and `include/gba_functions.h` (settings in NVS), `partitions.csv` and `sdkconfig` (save storage), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
 
 ---
 
@@ -38,7 +39,7 @@ Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, bri
 | VCC | 3V3 | set the module's voltage selector to **3.3V** |
 | GND | GND | |
 
-Same wiring as [LauncherDual](https://github.com/dbgoodPQ/LauncherDual), so one cable works for both. This firmware does not mount the SD card, so sharing G14/G40 causes no conflict. Leave G39 (SD MISO) and G12 (SD CS) unconnected to the screen.
+Same wiring as [LauncherDual](https://github.com/dbgoodPQ/LauncherDual), so one cable works for both. This firmware does not use the SD card (save games go to internal flash), so sharing G14/G40 causes no conflict. Leave G39 (SD MISO) and G12 (SD CS) unconnected to the screen.
 
 ---
 
@@ -71,7 +72,7 @@ Download mode: power **OFF**, hold **G0**, power **ON**, release G0.
 esptool.py --chip esp32s3 --port /dev/ttyACM0 --baud 921600 write_flash 0x0 cardputer-adv-doom-extscreen-merged.bin
 ```
 
-Flashing only the app is not enough on a fresh device: the 6 MB partition table must be written too (the merged file includes it).
+Flashing only the app is not enough on a fresh device: the partition table (6 MB app + 1 MB save storage) must be written too. The merged file includes it.
 
 ---
 

@@ -18,6 +18,8 @@
 #include <esp_task_wdt.h>
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
+#include <esp_vfs_fat.h>
+#include <wear_levelling.h>
 
 
 unsigned short * __sprite_data;
@@ -366,6 +368,24 @@ void canvas_init()
     __sprite_data = (unsigned short*)doom_canvas->getBuffer();
 }
 
+// Save games: Doom writes /sd/doom/DOOMn.dsg. Instead of the SD card (whose SPI
+// lines the external screen uses), /sd is a FAT partition in internal flash.
+static void savefs_init()
+{
+    static wl_handle_t wl = WL_INVALID_HANDLE;
+    esp_vfs_fat_mount_config_t cfg = {};
+    cfg.format_if_mount_failed = true;
+    cfg.max_files = 2;
+    cfg.allocation_unit_size = 0;
+    esp_err_t err = esp_vfs_fat_spiflash_mount_rw_wl("/sd", "storage", &cfg, &wl);
+    if (err != ESP_OK) {
+        printf("Save storage mount failed: %s\n", esp_err_to_name(err));
+        return;
+    }
+    mkdir("/sd/doom", 0775);
+    printf("Save storage mounted at /sd\n");
+}
+
 extern "C" void init_wad(void)
 {
     doom_iwad = (unsigned char*)doom_iwad_builtin;
@@ -377,6 +397,8 @@ extern "C" void app_main(void)
     memcheck("Start");
 
     kb_init();
+
+    savefs_init();   // before Doom reserves its memory pool
 
     canvas_init();
 
