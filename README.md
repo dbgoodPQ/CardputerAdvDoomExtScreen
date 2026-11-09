@@ -19,10 +19,10 @@ Everything else (keyboard, sound, music, other controls, embedded WAD, 6 MB part
 | Menus | Same scaling as gameplay | Smoothed (anti-aliased) scaling while a menu is open, so text looks even |
 | Settings | Not saved (GBA cartridge SRAM only) | Saved in flash (NVS): brightness, volumes, always run, messages |
 | Brightness | Starts at 0 | Starts at **4** (of 0–5) until you change it |
-| Save / load game | Needs an SD card that is never mounted, so it does nothing (load can crash) | Saved in a 1 MB FAT partition in internal flash, no SD card needed |
+| Save / load game | Needs an SD card that is never mounted, so it does nothing (load can crash) | Saved in a 1 MB FAT partition in internal flash; each save is also copied to the SD card (see below) |
 | Build | Manual `idf.py build` | GitHub Action builds the Cardputer ADV firmware and uploads it as an artifact |
 
-Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, brightness), `components/GBADoom/source/i_system_esps3.c` and `include/gba_functions.h` (settings in NVS), `partitions.csv` and `sdkconfig` (save storage), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
+Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, brightness), `components/GBADoom/source/i_system_esps3.c` and `include/gba_functions.h` (settings in NVS), `partitions.csv` and `sdkconfig` (save storage), `main/sd_backup.c` (SD copy), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
 
 ---
 
@@ -39,7 +39,18 @@ Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, bri
 | VCC | 3V3 | set the module's voltage selector to **3.3V** |
 | GND | GND | |
 
-Same wiring as [LauncherDual](https://github.com/dbgoodPQ/LauncherDual), so one cable works for both. This firmware does not use the SD card (save games go to internal flash), so sharing G14/G40 causes no conflict. Leave G39 (SD MISO) and G12 (SD CS) unconnected to the screen.
+Same wiring as [LauncherDual](https://github.com/dbgoodPQ/LauncherDual), so one cable works for both. The SD card is only used for save backups, and only while the screen is paused (see below), so sharing G14/G40 causes no conflict. Leave G39 (SD MISO) and G12 (SD CS) unconnected to the screen.
+
+---
+
+## Save games and the SD card
+
+- **Save / load** always use internal flash (`/sd/doom/DOOMn.dsg`), so loading never touches the card.
+- **After each save**, the slot is copied to `/doom/DOOMn.dsg` on the SD card. The screen pauses for a moment and hands its SPI bus to the card for the copy.
+- **At boot**, if flash has no saves (for example after reinstalling), they are copied back from the card.
+- No card, or a card error, is logged and ignored: the save in flash is kept. The card must be FAT32; it is never formatted.
+
+Reinstalling this firmware with the merged file keeps the saves in flash anyway (the save partition at `0x610000` is not overwritten). The SD copy matters after a full erase or after flashing a firmware with a different layout.
 
 ---
 

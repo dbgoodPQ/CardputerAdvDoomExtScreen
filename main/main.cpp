@@ -20,11 +20,13 @@
 #include <esp_timer.h>
 #include <esp_vfs_fat.h>
 #include <wear_levelling.h>
+#include "sd_backup.h"
 
 
 unsigned short * __sprite_data;
 
 LGFX_Sprite * doom_canvas;
+static LGFX_ExtST7789 * ext_display;
 
 bool scale = true;
 
@@ -357,6 +359,7 @@ void canvas_init()
     builtin_lcd_off();
 
     LGFX_ExtST7789* _display = new LGFX_ExtST7789;
+    ext_display = _display;
     _display->init();
     _display->setRotation(EXT_TFT_ROTATION);
     _display->fillScreen(TFT_BLACK);
@@ -386,6 +389,23 @@ static void savefs_init()
     printf("Save storage mounted at /sd\n");
 }
 
+// Called by G_DoSaveGame after a save was written to flash: copy it to the SD
+// card. The screen shares SCK/MOSI with the card, so it hands the bus over
+// for the copy and takes it back afterwards.
+extern "C" void I_SaveBackup(int slot)
+{
+    esp_task_wdt_reset();
+    if (ext_display) {
+        ext_display->waitDisplay();
+        ext_display->releaseBus();
+    }
+    sd_backup_slot(slot);
+    if (ext_display) {
+        ext_display->initBus();
+    }
+    esp_task_wdt_reset();
+}
+
 extern "C" void init_wad(void)
 {
     doom_iwad = (unsigned char*)doom_iwad_builtin;
@@ -399,6 +419,8 @@ extern "C" void app_main(void)
     kb_init();
 
     savefs_init();   // before Doom reserves its memory pool
+
+    sd_backup_import_at_boot();   // before the screen takes the shared SPI bus
 
     canvas_init();
 

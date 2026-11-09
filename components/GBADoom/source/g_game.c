@@ -1128,6 +1128,10 @@ void G_DoSaveGame (boolean menu)
     printf("Check length zero: %d\n",length);
     printf("Total write to file: %ld\n", ftell(savefile));
     fclose(savefile);
+    {
+        extern void I_SaveBackup(int slot);   // main.cpp: copy to the SD card
+        I_SaveBackup(_g->savegameslot);
+    }
     //M_WriteFile (name, savebuffer, length); 
     _g->gameaction = ga_nothing; 
     savedescription[0] = 0;		 

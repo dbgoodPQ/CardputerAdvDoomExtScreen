@@ -1,4 +1,4 @@
-idf_component_register(SRCS "main.cpp" "tca8418.c" "libc_wrap.c" ${DOOM_SRCS}
+idf_component_register(SRCS "main.cpp" "tca8418.c" "libc_wrap.c" "sd_backup.c" ${DOOM_SRCS}
                     INCLUDE_DIRS ".")
 
 # External ST7789V screen: optional overrides, e.g.
