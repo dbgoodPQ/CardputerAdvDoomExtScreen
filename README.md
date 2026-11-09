@@ -16,9 +16,12 @@ Everything else (keyboard, sound, music, other controls, embedded WAD, 6 MB part
 | Backlight | G38 (built-in) | **G4**, PWM-controlled |
 | SPI | SPI2 on G35/G36 at 80 MHz | SPI2 on **G14/G40** (the SD card's lines) at **40 MHz** |
 | Turn keys | Left `l`, right `'` | Left **`,`**, right **`/`** (also in menus and the map) |
+| Menus | Same scaling as gameplay | Smoothed (anti-aliased) scaling while a menu is open, so text looks even |
+| Settings | Not saved (GBA cartridge SRAM only) | Saved in flash (NVS): brightness, volumes, always run, messages |
+| Brightness | Starts at 0 | Starts at **4** (of 0–5) until you change it |
 | Build | Manual `idf.py build` | GitHub Action builds the Cardputer ADV firmware and uploads it as an artifact |
 
-Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
+Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys, brightness), `components/GBADoom/source/i_system_esps3.c` and `include/gba_functions.h` (settings in NVS), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
 
 ---
 
@@ -84,6 +87,7 @@ idf.py -DEXT_SPI_SPEED=80000000 -DEXT_TFT_ROTATION=3 build
 |--------|---------|---|
 | `EXT_SPI_SPEED` | `40000000` | Raise to `80000000` for more FPS if your wires are short; lower to `20000000` if the picture is noisy |
 | `EXT_TFT_ROTATION` | `1` | `3` flips the picture 180° |
+| `DOOM_SMOOTH_SCALE` | `1` | `0` never smooth (fastest), `1` smooth in menus, `2` always smooth (sharper-looking text, lower FPS) |
 | `EXT_TFT_CS` / `DC` / `RST` / `BL` / `MOSI` / `SCLK` | `5` / `6` / `3` / `4` / `14` / `40` | Pin numbers |
 
 From GitHub, **Actions → Build Cardputer ADV → Run workflow** takes the SPI speed and rotation as inputs.

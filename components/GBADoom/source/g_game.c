@@ -158,6 +158,10 @@ typedef struct gba_save_settings_t
 
 const unsigned int settings_cookie = 0xbaddead1;
 
+#ifndef DEFAULT_GAMMA
+#define DEFAULT_GAMMA 4
+#endif
+
 const unsigned int settings_sram_offset = sizeof(gba_save_data_t) * 8;
 
 //
@@ -1150,7 +1154,7 @@ void G_LoadSettings()
 
     if(settings.cookie == settings_cookie)
     {
-        _g->gamma = (settings.gamma > 0) ? 1 : 0;
+        _g->gamma = (settings.gamma > 5) ? 5 : settings.gamma;
         _g->alwaysRun = (settings.alwaysRun > 0) ? 1 : 0;
 
         _g->showMessages = (settings.showMessages > 0) ? 1 : 0;
@@ -1163,6 +1167,13 @@ void G_LoadSettings()
 
         S_SetSfxVolume(_g->snd_SfxVolume);
         S_SetMusicVolume(_g->snd_MusicVolume);
+    }
+    else
+    {
+        // Nothing saved yet: start brighter than stock (0..5)
+        _g->gamma = DEFAULT_GAMMA;
+        V_SetPalLump(_g->gamma);
+        V_SetPalette(0);
     }
 }
 

@@ -84,19 +84,21 @@ inline static void* ByteFind(byte* mem, byte val, unsigned int count)
     return NULL;
 }
 
+#ifdef GBA
 inline static void SaveSRAM(const byte* eeprom, unsigned int size, unsigned int offset)
 {
-#ifdef GBA
     ByteCopy((byte*)(0xE000000 + offset), eeprom, size);
-#endif
 }
 
 inline static void LoadSRAM(byte* eeprom, unsigned int size, unsigned int offset)
 {
-#ifdef GBA
     ByteCopy(eeprom, (byte*)(0xE000000 + offset), size);
-#endif
 }
+#else
+// ESP32: stored in NVS flash (i_system_esps3.c)
+void SaveSRAM(const byte* eeprom, unsigned int size, unsigned int offset);
+void LoadSRAM(byte* eeprom, unsigned int size, unsigned int offset);
+#endif
 
 //Cheap mul by 120. Not sure if faster.
 #define ScreenYToOffset(x) ((x << 7) - (x << 3))

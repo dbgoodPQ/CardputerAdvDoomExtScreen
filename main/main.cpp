@@ -30,6 +30,12 @@ bool scale = true;
 // 320x213 (aspect kept) and centred, leaving thin black bars top and bottom.
 #define DOOM_SCALE ((float)EXT_TFT_WIDTH / 240.0f)
 
+// 0 = always nearest pixel, 1 = smooth while a menu is open (default), 2 = always smooth
+#ifndef DOOM_SMOOTH_SCALE
+#define DOOM_SMOOTH_SCALE 1
+#endif
+extern "C" int __doom_menu_active(void);
+
 extern "C" void __update_sprite() {
     // Diagnostics: one frame = one watchdog feed. If the game loop (or a display
     // transfer) gets stuck for 5 s, the task watchdog panics, prints a backtrace
@@ -51,7 +57,17 @@ extern "C" void __update_sprite() {
     }
 
     if(scale) {
-        doom_canvas->pushRotateZoom(EXT_TFT_WIDTH/2.0f, EXT_TFT_HEIGHT/2.0f, 0.0f, DOOM_SCALE, DOOM_SCALE);
+#if DOOM_SMOOTH_SCALE == 2
+        const bool smooth = true;
+#elif DOOM_SMOOTH_SCALE == 1
+        const bool smooth = __doom_menu_active();
+#else
+        const bool smooth = false;
+#endif
+        if (smooth)   // anti-aliased: even-looking text, slower
+            doom_canvas->pushRotateZoomWithAA(EXT_TFT_WIDTH/2.0f, EXT_TFT_HEIGHT/2.0f, 0.0f, DOOM_SCALE, DOOM_SCALE);
+        else          // nearest pixel: fast
+            doom_canvas->pushRotateZoom(EXT_TFT_WIDTH/2.0f, EXT_TFT_HEIGHT/2.0f, 0.0f, DOOM_SCALE, DOOM_SCALE);
     } else {
         doom_canvas->pushSprite((EXT_TFT_WIDTH-240)/2, (EXT_TFT_HEIGHT-160)/2);
     }

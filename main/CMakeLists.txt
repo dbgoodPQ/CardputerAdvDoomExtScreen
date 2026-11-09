@@ -3,7 +3,7 @@ idf_component_register(SRCS "main.cpp" "tca8418.c" "libc_wrap.c" ${DOOM_SRCS}
 
 # External ST7789V screen: optional overrides, e.g.
 #   idf.py -DEXT_SPI_SPEED=80000000 -DEXT_TFT_ROTATION=3 build
-foreach(opt EXT_TFT_MOSI EXT_TFT_SCLK EXT_TFT_CS EXT_TFT_DC EXT_TFT_RST EXT_TFT_BL EXT_TFT_ROTATION EXT_SPI_SPEED)
+foreach(opt EXT_TFT_MOSI EXT_TFT_SCLK EXT_TFT_CS EXT_TFT_DC EXT_TFT_RST EXT_TFT_BL EXT_TFT_ROTATION EXT_SPI_SPEED DOOM_SMOOTH_SCALE)
     if(DEFINED ${opt} AND NOT "${${opt}}" STREQUAL "")
         target_compile_definitions(${COMPONENT_LIB} PRIVATE ${opt}=${${opt}})
     endif()

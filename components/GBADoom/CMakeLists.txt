@@ -4,7 +4,7 @@ file(GLOB_RECURSE GBADOOM_SOURCES "source/*.c")
 idf_component_register(
     SRCS "${GBADOOM_SOURCES}"
     INCLUDE_DIRS "include"
-    REQUIRES driver
+    REQUIRES driver nvs_flash
 )
 
 # Compiler options for prboom - suppress warnings from legacy code

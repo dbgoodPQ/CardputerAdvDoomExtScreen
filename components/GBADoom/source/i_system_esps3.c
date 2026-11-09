@@ -13,6 +13,11 @@
 #include "tables.h"
 
 #include "i_system_esps3.h"
+#include "gba_functions.h"
+
+#include <string.h>
+#include "nvs_flash.h"
+#include "nvs.h"
 
 
 
@@ -181,3 +186,50 @@ void I_Quit_e32()
 //**************************************************************************************
 
 
+
+//**************************************************************************************
+// Settings persistence (the GBA wrote these to cartridge SRAM; here they go to NVS)
+
+static void doom_nvs_init(void)
+{
+    static int done = 0;
+    if (done) return;
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        nvs_flash_erase();
+        err = nvs_flash_init();
+    }
+    if (err != ESP_OK) printf("NVS init failed: %d\n", err);
+    done = 1;
+}
+
+void SaveSRAM(const byte* eeprom, unsigned int size, unsigned int offset)
+{
+    char key[16];
+    nvs_handle_t h;
+    doom_nvs_init();
+    snprintf(key, sizeof(key), "sram_%x", offset);
+    if (nvs_open("doom", NVS_READWRITE, &h) != ESP_OK) return;
+    nvs_set_blob(h, key, eeprom, size);
+    nvs_commit(h);
+    nvs_close(h);
+}
+
+void LoadSRAM(byte* eeprom, unsigned int size, unsigned int offset)
+{
+    char key[16];
+    nvs_handle_t h;
+    size_t len = size;
+    memset(eeprom, 0, size);   // nothing saved yet -> cookie mismatch -> defaults
+    doom_nvs_init();
+    snprintf(key, sizeof(key), "sram_%x", offset);
+    if (nvs_open("doom", NVS_READONLY, &h) != ESP_OK) return;
+    if (nvs_get_blob(h, key, eeprom, &len) != ESP_OK || len != size) memset(eeprom, 0, size);
+    nvs_close(h);
+}
+
+// Used by the display code to scale menus smoothly
+int __doom_menu_active(void)
+{
+    return _g->menuactive ? 1 : 0;
+}
