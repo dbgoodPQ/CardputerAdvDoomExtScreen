@@ -60,8 +60,18 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-      - name: Attach to release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Every push to main publishes a release (v1.0.<run number>), so the files
+      # can be downloaded without logging in:
+      #   https://github.com/<owner>/<repo>/releases/latest/download/cardputer-adv-doom-extscreen-merged.bin
+      - name: Publish release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v1.0.{0}', github.run_number) }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v1.0.{0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            Doom for the M5Stack Cardputer ADV on an external Waveshare 2" ST7789V (240x320 IPS).
+            Flash `cardputer-adv-doom-extscreen-merged.bin` at `0x0`. Wiring: see README.
           files: dist/*

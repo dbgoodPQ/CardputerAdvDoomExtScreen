@@ -40,7 +40,17 @@ Same wiring as [LauncherDual](https://github.com/dbgoodPQ/LauncherDual), so one 
 
 ## Download
 
-**Actions** tab → latest **Build Cardputer ADV (external ST7789V)** run → artifact `cardputer-adv-doom-extscreen`. Tagged releases (`v*`) get the same files attached.
+Every push to `main` publishes a [release](https://github.com/dbgoodPQ/CardputerAdvDoomExtScreen/releases/latest). Direct link to the latest merged image:
+
+https://github.com/dbgoodPQ/CardputerAdvDoomExtScreen/releases/latest/download/cardputer-adv-doom-extscreen-merged.bin
+
+From PowerShell (no browser, no login):
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/dbgoodPQ/CardputerAdvDoomExtScreen/releases/latest/download/cardputer-adv-doom-extscreen-merged.bin" -OutFile "cardputer-adv-doom-extscreen-merged.bin"
+```
+
+The same files are also on each Actions run as the artifact `cardputer-adv-doom-extscreen`.
 
 | File | Flash address |
 |------|---------------|
