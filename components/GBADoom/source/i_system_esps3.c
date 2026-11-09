@@ -163,7 +163,12 @@ void I_ProcessKeyEvents()
 
 void I_Error (const char *error, ...)
 {
-    printf("I_Error: %s\n", error);
+    va_list args;
+    va_start(args, error);
+    printf("I_Error: ");
+    vprintf(error, args);
+    printf("\n");
+    va_end(args);
 }
 
 //**************************************************************************************

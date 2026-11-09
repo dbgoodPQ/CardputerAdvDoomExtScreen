@@ -99,7 +99,7 @@ class LGFX_ExtST7789 : public lgfx::LGFX_Device {
             cfg.invert        = true;   // IPS panel: needs INVON
             cfg.rgb_order     = false;
             cfg.dlen_16bit    = false;
-            cfg.bus_shared    = true;   // SCK/MOSI are the SD card's lines
+            cfg.bus_shared    = false;  // SCK/MOSI are the SD card's lines, but this firmware never mounts the SD card
 
             _panel_instance.config(cfg);
         }

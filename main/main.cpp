@@ -15,6 +15,9 @@
 #include <sys/types.h>
 
 #include "spi_display.hpp"
+#include <esp_task_wdt.h>
+#include <esp_heap_caps.h>
+#include <esp_timer.h>
 
 
 unsigned short * __sprite_data;
@@ -28,6 +31,25 @@ bool scale = true;
 #define DOOM_SCALE ((float)EXT_TFT_WIDTH / 240.0f)
 
 extern "C" void __update_sprite() {
+    // Diagnostics: one frame = one watchdog feed. If the game loop (or a display
+    // transfer) gets stuck for 5 s, the task watchdog panics, prints a backtrace
+    // on the USB serial port and reboots instead of freezing.
+    esp_task_wdt_reset();
+
+    static int64_t last_log = 0;
+    static uint32_t frames = 0;
+    frames++;
+    int64_t now = esp_timer_get_time();
+    if (now - last_log > 10000000) {   // every 10 s
+        printf("[diag] fps=%.1f free=%u largest=%u min_ever=%u\n",
+               frames * 1e6f / (float)(now - last_log),
+               (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+               (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+               (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+        last_log = now;
+        frames = 0;
+    }
+
     if(scale) {
         doom_canvas->pushRotateZoom(EXT_TFT_WIDTH/2.0f, EXT_TFT_HEIGHT/2.0f, 0.0f, DOOM_SCALE, DOOM_SCALE);
     } else {
@@ -343,6 +365,17 @@ extern "C" void app_main(void)
     canvas_init();
 
     init_wad();
+
+    // Task watchdog on the game loop only (idle tasks not watched: Doom never yields).
+    esp_task_wdt_config_t wdt_cfg = {
+        .timeout_ms = 5000,
+        .idle_core_mask = 0,
+        .trigger_panic = true,
+    };
+    if (esp_task_wdt_init(&wdt_cfg) == ESP_ERR_INVALID_STATE) {
+        esp_task_wdt_reconfigure(&wdt_cfg);
+    }
+    esp_task_wdt_add(NULL);
 
     printf("Launch DOOM\n");
     doom_main(0, 0);
