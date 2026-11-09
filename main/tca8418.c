@@ -1,10 +1,11 @@
+#include "esp_attr.h"
 #include "tca8418.h"
 #include "esp_log.h"
 #include "esp_err.h"
 
 static const char *TAG = "TCA8418";
 
-static void tca8418_isr_handler(void* arg);
+static void IRAM_ATTR tca8418_isr_handler(void* arg);
 
 /**
  * @brief Initialize the TCA8418 keyboard expander.
@@ -566,7 +567,7 @@ esp_err_t tca8418_clear_interrupt(tca8418_dev_t *dev) {
 }
 
 // ISR handler function
-static void tca8418_isr_handler(void* arg) {
+static void IRAM_ATTR tca8418_isr_handler(void* arg) {
     tca8418_dev_t *dev = (tca8418_dev_t*)arg;
     
     if (dev == NULL || dev->int_callback == NULL) {
