@@ -2,7 +2,7 @@
 
 Doom for the **M5Stack Cardputer ADV**, rendered on an external **Waveshare 2" LCD (ST7789V, 240×320 IPS)** instead of the built-in 135×240 screen.
 
-Everything else (keyboard, sound, music, controls, embedded WAD, 6 MB partition table) is unchanged from the original project — see [Credits](#credits).
+Everything else (keyboard, sound, music, other controls, embedded WAD, 6 MB partition table) is unchanged from the original project — see [Credits](#credits).
 
 ---
 
@@ -15,9 +15,10 @@ Everything else (keyboard, sound, music, controls, embedded WAD, 6 MB partition 
 | Built-in screen | Used | Not initialised; its backlight (G38) is switched off |
 | Backlight | G38 (built-in) | **G4**, PWM-controlled |
 | SPI | SPI2 on G35/G36 at 80 MHz | SPI2 on **G14/G40** (the SD card's lines) at **40 MHz** |
+| Turn keys | Left `l`, right `'` | Left **`,`**, right **`/`** (also in menus and the map) |
 | Build | Manual `idf.py build` | GitHub Action builds the Cardputer ADV firmware and uploads it as an artifact |
 
-Code changes are limited to `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
+Code changes are limited to `components/GBADoom/source/g_game.c` (turn keys), `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
 
 ---
 

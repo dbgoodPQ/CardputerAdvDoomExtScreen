@@ -90,8 +90,8 @@
 #define K_OPT   0x07
 #define K_ALT   0x08
 
-const int     key_right = '\'';
-const int     key_left = 'l';
+const int     key_right = '/';
+const int     key_left = ',';
 const int     key_up = ';';
 const int     key_down = '.';
 const int     key_menu_right = key_right;                                      // phares 3/7/98
