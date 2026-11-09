@@ -1,0 +1,67 @@
+name: Build Cardputer ADV (external ST7789V)
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      spi_speed:
+        description: 'External screen SPI clock in Hz (40000000 default, 80000000 for short wires)'
+        required: false
+        default: '40000000'
+      rotation:
+        description: 'External screen rotation (1 = landscape, 3 = landscape flipped)'
+        required: false
+        default: '1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:v5.5.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build firmware (ESP32-S3)
+        shell: bash
+        env:
+          SPI_SPEED: ${{ github.event.inputs.spi_speed || '40000000' }}
+          ROTATION: ${{ github.event.inputs.rotation || '1' }}
+        run: |
+          git config --global --add safe.directory '*'
+          . "$IDF_PATH/export.sh"
+          # sdkconfig in the repo already targets esp32s3 (no set-target: it would reset sdkconfig)
+          idf.py -DEXT_SPI_SPEED="$SPI_SPEED" -DEXT_TFT_ROTATION="$ROTATION" build
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          mkdir -p dist
+          cd build
+          # Offsets come from the build itself (bootloader 0x0, partition table 0x8000, app 0x10000)
+          python -m esptool --chip esp32s3 merge_bin -o ../dist/cardputer-adv-doom-extscreen-merged.bin @flash_args
+          cp bootloader/bootloader.bin            ../dist/bootloader.bin
+          cp partition_table/partition-table.bin  ../dist/partition-table.bin
+          cp cardputer_doom.bin                   ../dist/cardputer_doom.bin
+          cp flash_args                           ../dist/flash_args.txt
+          ls -l ../dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardputer-adv-doom-extscreen
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

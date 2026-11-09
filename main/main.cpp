@@ -23,13 +23,16 @@ LGFX_Sprite * doom_canvas;
 
 bool scale = true;
 
+// Doom renders 240x160. On the external 320x240 panel it is scaled by 4/3 to
+// 320x213 (aspect kept) and centred, leaving thin black bars top and bottom.
+#define DOOM_SCALE ((float)EXT_TFT_WIDTH / 240.0f)
+
 extern "C" void __update_sprite() {
     if(scale) {
-        doom_canvas->pushRotateZoom(240.0f/2.0f,135.0f/2.0f,0.0f,1.0f,(135.0f/160.0f));
+        doom_canvas->pushRotateZoom(EXT_TFT_WIDTH/2.0f, EXT_TFT_HEIGHT/2.0f, 0.0f, DOOM_SCALE, DOOM_SCALE);
     } else {
-        doom_canvas->pushSprite(0,0);
+        doom_canvas->pushSprite((EXT_TFT_WIDTH-240)/2, (EXT_TFT_HEIGHT-160)/2);
     }
-        
 }
 
 extern "C" void __set_sprite_pallete(unsigned int i, unsigned char r, unsigned char g, unsigned char b) {
@@ -311,9 +314,13 @@ void memcheck(const char *tag) {
 
 void canvas_init()
 {
-    LGFX_Cardputer* _display = new LGFX_Cardputer;
+    builtin_lcd_off();
+
+    LGFX_ExtST7789* _display = new LGFX_ExtST7789;
     _display->init();
-    _display->setRotation(1);
+    _display->setRotation(EXT_TFT_ROTATION);
+    _display->fillScreen(TFT_BLACK);
+    _display->setBrightness(255);
     doom_canvas = new LGFX_Sprite(_display);
     doom_canvas->setColorDepth(lgfx::color_depth_t::palette_8bit);
     doom_canvas->createPalette();

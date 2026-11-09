@@ -1,79 +1,103 @@
-# Doom!
-This is Doom for M5 Cardputer
+# Cardputer ADV Doom — External Screen
 
-Cardputer does not have PSRAM, so things get tricky
+Doom for the **M5Stack Cardputer ADV**, rendered on an external **Waveshare 2" LCD (ST7789V, 240×320 IPS)** instead of the built-in 135×240 screen.
 
-Is mostly a port of [prBoom Port to GBA](https://github.com/doomhack/GBADoom) by doomhack
+Everything else (keyboard, sound, music, controls, embedded WAD, 6 MB partition table) is unchanged from the original project — see [Credits](#credits).
 
-HAL was taken from [M5 Official User Demo](https://github.com/m5stack/M5Cardputer-UserDemo)
+---
 
-Some parts collected from [Retro-Go](https://github.com/ducalex/retro-go) project
+## What changed
 
-Can work with original WADs after their conversion with GbaWadUtil, also lended from doomhack.
+| Area | Original | This fork |
+|------|----------|-----------|
+| Display | Built-in ST7789, 135×240 | External Waveshare 2" ST7789V, 240×320 IPS (used as 320×240 landscape) |
+| Picture | 240×160 frame scaled down to 202×135 | 240×160 frame scaled ×4/3 to **320×213**, centred (aspect kept, thin black bars top/bottom) |
+| Built-in screen | Used | Not initialised; its backlight (G38) is switched off |
+| Backlight | G38 (built-in) | **G4**, PWM-controlled |
+| SPI | SPI2 on G35/G36 at 80 MHz | SPI2 on **G14/G40** (the SD card's lines) at **40 MHz** |
+| Build | Manual `idf.py build` | GitHub Action builds the Cardputer ADV firmware and uploads it as an artifact |
 
-WAD is compiled into binary itself
+Code changes are limited to `main/spi_display.hpp` (new panel driver), `main/main.cpp` (init + scaling), `main/CMakeLists.txt` (build-time overrides), `merge_firmware.sh` (bootloader offset fixed to `0x0` for ESP32-S3) and `.github/workflows/build-cardputer-adv.yml`.
 
-Built against
-[ESP-IDF v4.4.6](https://docs.espressif.com/projects/esp-idf/en/v4.4.6/esp32/index.html)
+---
 
-Save-load works with SD card
+## Wiring (Cardputer ADV header → Waveshare 2inch LCD module)
 
-Save-load crashes without SD card
+| Waveshare pin | Cardputer ADV | Notes |
+|---------------|---------------|-------|
+| DIN (MOSI) | G14 | shared with the SD card |
+| CLK (SCK)  | G40 | shared with the SD card |
+| CS  | G5 | |
+| DC  | G6 | |
+| RST | G3 | |
+| BL  | G4 | backlight, software-controlled |
+| VCC | 3V3 | set the module's voltage selector to **3.3V** |
+| GND | GND | |
 
-Sometimes crashes randomly
+Same wiring as [LauncherDual](https://github.com/dbgoodPQ/LauncherDual), so one cable works for both. This firmware does not mount the SD card, so sharing G14/G40 causes no conflict. Leave G39 (SD MISO) and G12 (SD CS) unconnected to the screen.
 
-#### Controls
- - Forward: ;
- - Backward: .
- - Left: l
- - Right: '
- - Fire: opt
- - Strafe left: ctrl
- - Strafe right: alt
- - Use: fn
- - Map: tab
- - Weapon: 1-7
+---
 
-#### Cheats
- - iddqd - god mode
- - idkfa - keys, weapons, armor
- - idc<x><y> - jump to level E<x>M<x> (eg. idc14 jumps to E1M4)
-   
-#### Done
- - User input
- - Sounds (SFX)
- - Music
- - Save & Load
- - Optimize user input
- - Cheats!
+## Download
 
-#### To do
- - Load WAD from SD card (somehow, mmap?)
- - Fix minor music issues
+**Actions** tab → latest **Build Cardputer ADV (external ST7789V)** run → artifact `cardputer-adv-doom-extscreen`. Tagged releases (`v*`) get the same files attached.
 
-#### Build
+| File | Flash address |
+|------|---------------|
+| `cardputer-adv-doom-extscreen-merged.bin` | `0x0` (everything in one file) |
+| `bootloader.bin` | `0x0` |
+| `partition-table.bin` | `0x8000` |
+| `cardputer_doom.bin` | `0x10000` |
 
-```bash
-git clone https://github.com/romalik/m5cardputer_doom
-```
-```bash
-idf.py build
-```
-```bash
-idf.py flash -p /dev/ttyACM0
-```
+## Flash
 
-
-#### Wad Util
+Download mode: power **OFF**, hold **G0**, power **ON**, release G0.
 
 ```bash
-mkdir build
-cd build
-qmake ../GbaWadUtil.pro
-make
-cd ..
- # place doom1.wad file somewhere near here
- # gbadoom.wad is needed to cover missing assets
-./build/GbaWadUtil -in doom1.wad -out gdoom1.wad -cfile doom1.c -pwad ./gbadoom.wad
- # place doom1.c to main/doom/source/iwad/ and recompile the firmware
+esptool.py --chip esp32s3 --port /dev/ttyACM0 --baud 921600 write_flash 0x0 cardputer-adv-doom-extscreen-merged.bin
 ```
+
+Flashing only the app is not enough on a fresh device: the 6 MB partition table must be written too (the merged file includes it).
+
+---
+
+## Build options
+
+Defaults are in `main/spi_display.hpp`. Override at build time:
+
+```bash
+idf.py -DEXT_SPI_SPEED=80000000 -DEXT_TFT_ROTATION=3 build
+```
+
+| Option | Default | |
+|--------|---------|---|
+| `EXT_SPI_SPEED` | `40000000` | Raise to `80000000` for more FPS if your wires are short; lower to `20000000` if the picture is noisy |
+| `EXT_TFT_ROTATION` | `1` | `3` flips the picture 180° |
+| `EXT_TFT_CS` / `DC` / `RST` / `BL` / `MOSI` / `SCLK` | `5` / `6` / `3` / `4` / `14` / `40` | Pin numbers |
+
+From GitHub, **Actions → Build Cardputer ADV → Run workflow** takes the SPI speed and rotation as inputs.
+
+Requires ESP-IDF **v5.5.2** (matches the committed `sdkconfig`).
+
+---
+
+## Troubleshooting
+
+| Symptom | Try |
+|---------|-----|
+| Screen stays white or black | Check CS/DC/RST wiring and the 3.3V selector |
+| Picture upside down | Build with `EXT_TFT_ROTATION=3` |
+| Garbled picture / noise | Build with `EXT_SPI_SPEED=20000000` |
+| Colours inverted | The driver sends INVON for an IPS panel; set `cfg.invert = false` in `spi_display.hpp` for a non-IPS module |
+
+---
+
+## Credits
+
+- Original Cardputer ADV port: [zspuspoki/CardPuterAdvancedDoom](https://github.com/zspuspoki/CardPuterAdvancedDoom) (MIT) — the source this repository is forked from.
+- Working ADV binary and flashing notes: [MAXXTANG/CardPuter-ADV-Doom](https://github.com/MAXXTANG/CardPuter-ADV-Doom).
+- Original Cardputer Doom: [romalik/m5cardputer_doom](https://github.com/romalik/m5cardputer_doom), based on [doomhack/GBADoom](https://github.com/doomhack/GBADoom).
+- Display library: [LovyanGFX](https://github.com/lovyan03/LovyanGFX).
+- External screen wiring from [dbgoodPQ/LauncherDual](https://github.com/dbgoodPQ/LauncherDual).
+
+MIT License — see [LICENSE](LICENSE).
